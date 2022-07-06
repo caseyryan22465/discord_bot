@@ -1,33 +1,27 @@
 #![feature(is_some_with)]
-use std::collections::{HashMap, HashSet};
-use std::env;
+use std::collections::{HashMap};
+//use std::env;
 use std::sync::Arc;
 use std::io::Write;
 use std::fs::File;
 use std::fs;
 use std::process::Command;
-use std::path::{Path, PathBuf};
+use std::io::Read;
 
 use serenity::async_trait;
-use serenity::client::bridge::gateway::{ShardId, ShardManager};
-use serenity::framework::standard::buckets::{LimitedFor, RevertBucket};
-use serenity::framework::standard::macros::{check, command, group, help, hook};
+use serenity::client::bridge::gateway::{ShardManager};
+//use serenity::framework::standard::buckets::{LimitedFor, RevertBucket};
+use serenity::framework::standard::macros::{command, group, hook};
 use serenity::framework::standard::{
-    help_commands,
     Args,
-    CommandGroup,
-    CommandOptions,
     CommandResult,
-    DispatchError,
-    HelpOptions,
-    Reason,
     StandardFramework,
 };
 use serenity::http::Http;
-use serenity::model::channel::{Channel, Message};
+use serenity::model::channel::{Message};
 use serenity::model::gateway::{GatewayIntents, Ready};
-use serenity::model::id::UserId;
-use serenity::model::permissions::Permissions;
+//use serenity::model::id::UserId;
+//use serenity::model::permissions::Permissions;
 use serenity::prelude::*;
 use serenity::utils::{content_safe, ContentSafeOptions};
 use tokio::sync::Mutex;
@@ -97,27 +91,27 @@ async fn normal_message(_ctx: &Context, msg: &Message) {
             };
 
             let fpath = &attachment.id.as_u64().to_string();
-            let mut opath = &mut attachment.id.as_u64().to_string();
+            let opath = &mut attachment.id.as_u64().to_string();
             opath.push_str(".mp4");
             let mut file = File::create(fpath).unwrap();
-            file.write_all(content.as_slice());
+            file.write_all(content.as_slice()).unwrap();
 
             let encodestatus = Command::new("cmd")
                 .args(["/C", "ffmpeg", "-i", fpath, "-c:v", "libx264", opath])
                 .status()
                 .expect("ffmpeg failed to start");
 
-            fs::remove_file(fpath);
+            fs::remove_file(fpath).unwrap();
             if encodestatus.success() {
                 println!("Sending reencoded version");
                 
-                let reply = msg.channel_id.send_message(&_ctx.http, |m| {
+                msg.channel_id.send_message(&_ctx.http, |m| {
                     m
                         .content("Discord-friendly version: ")
                         .reference_message(msg)
                         .add_file(opath.as_str())
-                }).await;//
-                fs::remove_file(opath);
+                }).await.unwrap();//
+                fs::remove_file(opath).unwrap();
                 
                 //msg.channel_id.send_files(&_ctx.http, f2, |m| m.content("Discord-friendly version: ")).await;
             }
@@ -128,8 +122,10 @@ async fn normal_message(_ctx: &Context, msg: &Message) {
 #[tokio::main]
 async fn main() {
     // Login with a bot token from the environment
-    let token = "dontcopymytoken";//env::var("DISCORD_TOKEN").expect("token");
-    let http = Http::new(token);
+    let mut secret = File::open("secret").unwrap();
+    let mut token = String::new();
+    secret.read_to_string(&mut token).unwrap();
+    let http = Http::new(&token);
 
     let framework = StandardFramework::new()
         .configure(|c| c
