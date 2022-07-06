@@ -109,7 +109,7 @@ async fn normal_message(_ctx: &Context, msg: &Message) {
 
             fs::remove_file(fpath);
             if encodestatus.success() {
-                println!("Sending reencoded version")
+                println!("Sending reencoded version");
                 
                 let reply = msg.channel_id.send_message(&_ctx.http, |m| {
                     m
